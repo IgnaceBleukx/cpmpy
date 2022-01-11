@@ -164,23 +164,17 @@ class CPM_minizinc(SolverInterface):
             self._post_constraint(con)
         return self
 
-    def minimize(self, expr):
+    def objective(self, expr, minimize=True):
         """
-            Minimize the given objective function
+            Post the given expression to the solver as objective to minimize/maximize
 
-            `minimize()` can be called multiple times, only the last one is stored
+            'objective()' can be called multiple times, only the last one is stored
         """
         # do not add it to the model, support only one 'solve' entry
-        self.mzn_txt_solve = "solve minimize {};\n".format(self._convert_expression(expr))
-
-    def maximize(self, expr):
-        """
-            Maximize the given objective function
-
-            `maximize()` can be called multiple times, only the last one is stored
-        """
-        # do not add it to the model, support only one 'solve' entry
-        self.mzn_txt_solve = "solve maximize {};\n".format(self._convert_expression(expr))
+        if minimize:
+            self.mzn_txt_solve = "solve minimize {};\n".format(self._convert_expression(expr))
+        else:
+            self.mzn_txt_solve = "solve maximize {};\n".format(self._convert_expression(expr))
 
     def solve(self, time_limit=None, **kwargs):
         """
@@ -306,14 +300,6 @@ class CPM_minizinc(SolverInterface):
         self._post_solve(mzn_result)
 
         return solution_count
-
-    def objective_value(self):
-        """
-            Returns the value of the objective function of the latste solver run on this model
-
-        :return: an integer or 'None' if it is not run, or a satisfaction problem
-        """
-        return self.objective_value_
 
     def solver_var(self, cpm_var):
         """

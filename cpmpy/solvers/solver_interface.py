@@ -75,6 +75,9 @@ class SolverInterface(object):
         self.user_vars = set()  # variables in the original (non-transformed) model
         self._varmap = dict()  # maps cpmpy variables to native solver variables
 
+        # initialize objective value
+        self.objective_value_ = None
+
         # rest uses own API
         if cpm_model is not None:
             # post all constraints at once, implemented in __add__()
@@ -101,13 +104,22 @@ class SolverInterface(object):
 
             `minimize()` can be called multiple times, only the last one is stored
         """
-        raise NotImplementedError("Solver does not support objective functions")
+        return self.objective(expr, minimize=True)
+
 
     def maximize(self, expr):
         """
             Maximize the given objective function
 
             `maximize()` can be called multiple times, only the last one is stored
+        """
+        return self.objective(expr, minimize=False)
+
+    def objective(self, expr, minimize=True):
+        """
+            Post the given expression to the solver as objective to minimize/maximize
+
+            'objective()' can be called multiple times, only the last one is stored
         """
         raise NotImplementedError("Solver does not support objective functions")
 
@@ -139,7 +151,7 @@ class SolverInterface(object):
 
         :return: an integer or 'None' if it is not run, or a satisfaction problem
         """
-        return None
+        return self.objective_value_
 
     def solver_var(self, cpm_var):
         """
