@@ -295,3 +295,42 @@ class TestGlobal(unittest.TestCase):
 
         self.assertTrue(cp.Model(cp.Count([iv[0],iv[2],iv[1]], x) > y).solve())
 
+
+class TestBounds(unittest.TestCase):
+    def test_bounds_minimum(self):
+        x = cp.intvar(-8, 8)
+        y = cp.intvar(-7, -1)
+        z = cp.intvar(1, 9)
+        expr = cp.Minimum([x,y,z])
+        lb,ub = expr.get_bounds()
+        self.assertFalse(cp.Model(expr<lb).solve())
+        self.assertFalse(cp.Model(expr>ub).solve())
+
+
+    def test_bounds_maximum(self):
+        x = cp.intvar(-8, 8)
+        y = cp.intvar(-7, -1)
+        z = cp.intvar(1, 9)
+        expr = cp.Maximum([x,y,z])
+        lb,ub = expr.get_bounds()
+        self.assertFalse(cp.Model(expr<lb).solve())
+        self.assertFalse(cp.Model(expr>ub).solve())
+
+    def test_bounds_element(self):
+        x = cp.intvar(-8, 8)
+        y = cp.intvar(-7, -1)
+        z = cp.intvar(1, 9)
+        expr = cp.Element([x, y, z],z)
+        lb, ub = expr.get_bounds()
+        self.assertFalse(cp.Model(expr < lb).solve())
+        self.assertFalse(cp.Model(expr > ub).solve())
+
+    def test_bounds_count(self):
+        x = cp.intvar(-8, 8)
+        y = cp.intvar(-7, -1)
+        z = cp.intvar(1, 9)
+        a = cp.intvar(1, 9)
+        expr = cp.Count([x, y, z], a)
+        lb, ub = expr.get_bounds()
+        self.assertFalse(cp.Model(expr < lb).solve())
+        self.assertFalse(cp.Model(expr > ub).solve())
