@@ -370,7 +370,7 @@ class Minimum(GlobalConstraint):
 
         arr = argval(self.args)
         _min = intvar(-2147483648, 2147483647)
-        return all([any(x <= _min for x in arr), all(x >= _min for x in arr), eval_comparison(cpm_op, _min, cpm_rhs)])
+        return [any(x <= _min for x in arr), all(x >= _min for x in arr), eval_comparison(cpm_op, _min, cpm_rhs)]
 
 class Maximum(GlobalConstraint):
     """
@@ -404,7 +404,7 @@ class Maximum(GlobalConstraint):
 
         arr = argval(self.args)
         _max = intvar(-2147483648, 2147483647)
-        return all([any(x >= _max for x in arr), all(x <= _max for x in arr), eval_comparison(cpm_op, _max, cpm_rhs)])
+        return [any(x >= _max for x in arr), all(x <= _max for x in arr), eval_comparison(cpm_op, _max, cpm_rhs)]
 
 
 def element(arg_list):
@@ -435,7 +435,7 @@ class Element(GlobalConstraint):
             return argval(arr[idxval])
         return None # default
 
-    def decompose_comparison(self, cmp_op, cmp_rhs):
+    def decompose_comparison(self, cpm_op, cpm_rhs):
         """
             `Element(arr,ix)` represents the array lookup itself (a numeric variable)
             It is not a constraint itself, so it can not have a decompose().
@@ -446,8 +446,9 @@ class Element(GlobalConstraint):
         """
         from .python_builtins import any
 
-        arr,idx = self.args
-        return [any(eval_comparison(cmp_op, arr[j], cmp_rhs) & (idx == j) for j in range(len(arr)))]
+        arr, idx = self.args
+        return [(idx == i).implies(Comparison(cpm_op, arr[i], cpm_rhs)) for i in range(len(arr))] + \
+               [idx >= 0, idx < len(arr)]
 
     def __repr__(self):
         return "{}[{}]".format(self.args[0], self.args[1])
