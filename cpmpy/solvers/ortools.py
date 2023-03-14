@@ -448,10 +448,21 @@ class CPM_ortools(SolverInterface):
                 # when posting arcs on diagonal (i==j), it would do subcircuit
                 ort_arcs = [(i,j,self.solver_var(b)) for (i,j),b in np.ndenumerate(arcvars) if i != j]
                 return self.ort_model.AddCircuit(ort_arcs)
+            elif cpm_expr.name == 'inverse':
+                assert len(cpm_expr.args) == 2, "inverse() expects two args: fwd, rev"
+                fwd, rev = self.solver_vars(cpm_expr.args)
+                return self.ort_model.AddInverse(fwd, rev)
             elif cpm_expr.name == 'xor':
                 return self.ort_model.AddBoolXOr(self.solver_vars(cpm_expr.args))
             else:
-                raise NotImplementedError(f"Unknown global constraint {cpm_expr}, should be decomposed! If you reach this, please report on github.")
+                # NOT (YET?) MAPPED: Automaton, ForbiddenAssignments, Inverse?,
+                #    ReservoirConstraint, ReservoirConstraintWithActive
+            
+                # global constraint not known, try posting generic decomposition
+                # side-step `__add__()` as the decomposition can contain non-user (auxiliary) variables
+                for con in self.transform(cpm_expr.decompose()):
+                    self._post_constraint(con)
+                return None  # will throw error if used in reification
 
         # unlikely base case: Boolean variable
         elif isinstance(cpm_expr, _BoolVarImpl):
