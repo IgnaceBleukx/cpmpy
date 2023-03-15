@@ -335,7 +335,7 @@ class Minimum(GlobalConstraint):
         from .python_builtins import any, all
         lb, ub = self.get_bounds()
         _min = intvar(lb, ub)
-        return all([any(x <= _min for x in self.args), all(x >= _min for x in self.args), eval_comparison(cpm_op, _min, cpm_rhs)])
+        return [any(x <= _min for x in self.args), all(x >= _min for x in self.args), eval_comparison(cpm_op, _min, cpm_rhs)]
 
     def get_bounds(self):
         """
@@ -368,7 +368,7 @@ class Maximum(GlobalConstraint):
         from .python_builtins import any, all
         lb, ub = self.get_bounds()
         _max = intvar(lb, ub)
-        return all([any(x >= _max for x in self.args), all(x <= _max for x in self.args), eval_comparison(cpm_op, _max, cpm_rhs)])
+        return [any(x >= _max for x in self.args), all(x <= _max for x in self.args), eval_comparison(cpm_op, _max, cpm_rhs)]
 
     def get_bounds(self):
         """

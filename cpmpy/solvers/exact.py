@@ -29,6 +29,7 @@ from ..transformations.flatten_model import flatten_constraint, flatten_objectiv
 from ..transformations.get_variables import get_variables
 from ..transformations.linearize import linearize_constraint, only_positive_bv
 from ..transformations.reification import only_bv_implies, reify_rewrite
+from ..transformations.decompose_global import decompose_global
 import numpy as np
 
 class CPM_exact(SolverInterface):
@@ -241,7 +242,7 @@ class CPM_exact(SolverInterface):
         # create if it does not exist
         revar = str(cpm_var)
         if isinstance(cpm_var, _BoolVarImpl):
-            self.xct_solver.addVariable(revar,0,1)
+            self.xct_solver.addVariable(revar,0,1, encoding)
         elif isinstance(cpm_var, _IntVarImpl):
             lb = cpm_var.lb
             ub = cpm_var.ub
@@ -337,6 +338,7 @@ class CPM_exact(SolverInterface):
         # apply transformations, then post internally
         # expressions have to be linearized to fit in MIP model. See /transformations/linearize
         cpm_cons = flatten_constraint(cpm_expr)  # flat normal form
+        cpm_cons = decompose_global(cpm_cons)
         cpm_cons = reify_rewrite(cpm_cons, supported=frozenset(['sum', 'wsum']))  # constraints that support reification
         cpm_cons = only_bv_implies(cpm_cons)  # anything that can create full reif should go above...
         cpm_cons = linearize_constraint(cpm_cons)  # the core of the MIP-linearization

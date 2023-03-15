@@ -184,9 +184,10 @@ def linearize_constraint(cpm_expr, supported={"sum","wsum"}, reified=False):
                 # Big M implementation
                 z = boolvar()
                 # Calculate bounds of M = |lhs - rhs| + 1,  TODO: should be easier after fixing issue #96
-                bound1, _ = get_or_make_var(1 + lhs - rhs)
-                bound2, _ = get_or_make_var(1 + rhs - lhs)
-                M = max(bound1.ub, bound2.ub)
+                _, M = (1 + abs(lhs - rhs)).get_bounds()
+                # bound1, _ = get_or_make_var(1 + lhs - rhs)
+                # bound2, _ = get_or_make_var(1 + rhs - lhs)
+                # M = max(bound1.ub, bound2.ub)
 
                 cons = [lhs - M*z <= rhs-1, lhs - M*z >= rhs-M+1]
                 return linearize_constraint(flatten_constraint(cons), supported=supported, reified=reified)
