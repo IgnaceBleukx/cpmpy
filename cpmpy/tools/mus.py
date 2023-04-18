@@ -56,9 +56,9 @@ def mus(soft, hard=[], solver="ortools", time_limit=float('inf')):
     for i in range(len(core)):
         subassump = mus + core[i+1:]  # check if all but 'i' makes constraints SAT
         time_limit -= (time() - start_time)
-        if time_limit <= 0:
+        if time_limit - (time() - start_time) <= 0.1:
             raise TimeoutError("MUS-tool timed out")
-        if s.solve(assumptions=subassump, time_limit=time_limit):
+        if s.solve(assumptions=subassump, time_limit=time_limit - (time() - start_time)):
             # removing it makes it SAT, must keep for UNSAT
             mus.append(core[i])
         elif s.status().exitstatus == ExitStatus.UNKNOWN:
@@ -95,9 +95,9 @@ def mus_naive(soft, hard=[], solver="ortools", time_limit=float('inf')):
     for i in range(len(core)):
         subcore = mus + core[i+1:]  # check if all but 'i' makes core SAT
         time_limit -= (time() - start_time)
-        if time_limit <= 0:
+        if time_limit - (time() - start_time) <= 0.1:
             raise TimeoutError("MUS-tool timed out")
-        if Model(hard+subcore).solve(solver=solver, time_limit=time_limit):
+        if Model(hard+subcore).solve(solver=solver, time_limit=time_limit - (time() - start_time)):
             # removing it makes it SAT, must keep for UNSAT
             mus.append(core[i])
         elif m.status().exitstatus  == ExitStatus.UNKNOWN:
