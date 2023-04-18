@@ -5,13 +5,16 @@ Loosely based on PySat's MUSX:
 https://github.com/pysathq/pysat/blob/master/examples/musx.py
 
 """
+from time import time
+
 import numpy as np
 from cpmpy import *
 from cpmpy.expressions.variables import NDVarArray
+from cpmpy.solvers.solver_interface import ExitStatus
 from cpmpy.transformations.get_variables import get_variables
 from cpmpy.transformations.normalize import toplevel_list
 
-def mus(soft, hard=[], solver="ortools"):
+def mus(soft, hard=[], solver="ortools", time_limit=float('inf')):
     """
         A CP deletion-based MUS algorithm using assumption variables
         and unsat core extraction
@@ -29,7 +32,11 @@ def mus(soft, hard=[], solver="ortools"):
         :param: hard: hard constraints, optional, list of expressions
         :param: solver: name of a solver, see SolverLookup.solvernames()
             "z3" and "gurobi" are incremental, "ortools" restarts the solver
+        :param: time_limit: time limit for this function in seconds
     """
+    # start time of function
+    start_time = time()
+
     # ensure toplevel list
     soft = toplevel_list(soft, merge_and=False)
 
@@ -48,10 +55,14 @@ def mus(soft, hard=[], solver="ortools"):
     core = sorted(s.get_core()) # start from solver's UNSAT core
     for i in range(len(core)):
         subassump = mus + core[i+1:]  # check if all but 'i' makes constraints SAT
-        
-        if s.solve(assumptions=subassump):
+        time_limit -= (time() - start_time)
+        if time_limit <= 0:
+            raise TimeoutError("MUS-tool timed out")
+        if s.solve(assumptions=subassump, time_limit=time_limit):
             # removing it makes it SAT, must keep for UNSAT
             mus.append(core[i])
+        elif s.status().exitstatus == ExitStatus.UNKNOWN:
+            raise TimeoutError("MUS-tool timed out")
         # else: still UNSAT so don't need this candidate
     
     # create dictionary from assump to candidate
@@ -59,7 +70,7 @@ def mus(soft, hard=[], solver="ortools"):
     return [dmap[assump] for assump in mus]
     
 
-def mus_naive(soft, hard=[], solver="ortools"):
+def mus_naive(soft, hard=[], solver="ortools", time_limit=float('inf')):
     """
         A naive pure CP deletion-based MUS algorithm
 
@@ -72,7 +83,9 @@ def mus_naive(soft, hard=[], solver="ortools"):
         :param: soft: soft constraints, list of expressions
         :param: hard: hard constraints, optional, list of expressions
         :param: solver: name of a solver, see SolverLookup.solvernames()
+        :param: time_limit: time_limit of this function in seconds
     """
+    start_time = time()
     m = Model(hard+soft)
     assert not m.solve(solver=solver), "MUS: model must be UNSAT"
 
@@ -81,10 +94,14 @@ def mus_naive(soft, hard=[], solver="ortools"):
     core = sorted(soft, key=lambda c: -len(get_variables(c)))
     for i in range(len(core)):
         subcore = mus + core[i+1:]  # check if all but 'i' makes core SAT
-        
-        if Model(hard+subcore).solve(solver=solver):
+        time_limit -= (time() - start_time)
+        if time_limit <= 0:
+            raise TimeoutError("MUS-tool timed out")
+        if Model(hard+subcore).solve(solver=solver, time_limit=time_limit):
             # removing it makes it SAT, must keep for UNSAT
             mus.append(core[i])
+        elif m.status().exitstatus  == ExitStatus.UNKNOWN:
+            raise TimeoutError("MUS-tool timed out")
         # else: still UNSAT so don't need this candidate
     
     return mus
