@@ -148,7 +148,7 @@ class CPM_exact(SolverInterface):
             # NOTE: setAssumptions clears previous assumptions
 
         # call the solver, with parameters
-        my_status = self.xct_solver.runFull(not self.has_objective)
+        my_status = self.xct_solver.runFull(self.has_objective)
 
         # new status, translate runtime
         self.cpm_status = SolverStatus(self.name)
