@@ -82,9 +82,7 @@ def mus_naive(soft, hard=[], solver="ortools", time_limit=float('inf')):
         :param: soft: soft constraints, list of expressions
         :param: hard: hard constraints, optional, list of expressions
         :param: solver: name of a solver, see SolverLookup.solvernames()
-        :param: time_limit: time_limit of this function in seconds
     """
-    start_time = time()
     m = Model(hard+soft)
     assert not m.solve(solver=solver), "MUS: model must be UNSAT"
 
@@ -93,13 +91,10 @@ def mus_naive(soft, hard=[], solver="ortools", time_limit=float('inf')):
     core = sorted(soft, key=lambda c: -len(get_variables(c)))
     for i in range(len(core)):
         subcore = mus + core[i+1:]  # check if all but 'i' makes core SAT
-        if time_limit - (time() - start_time) <= 0.1:
-            raise TimeoutError("MUS-tool timed out")
-        if Model(hard+subcore).solve(solver=solver, time_limit=time_limit - (time() - start_time)):
+
+        if Model(hard+subcore).solve(solver=solver):
             # removing it makes it SAT, must keep for UNSAT
             mus.append(core[i])
-        elif m.status().exitstatus  == ExitStatus.UNKNOWN:
-            raise TimeoutError("MUS-tool timed out")
         # else: still UNSAT so don't need this candidate
     
     return mus
