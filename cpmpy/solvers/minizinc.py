@@ -228,12 +228,12 @@ class CPM_minizinc(SolverInterface):
         # new status, translate runtime
         self.cpm_status = SolverStatus(self.name)
         runtime = 0
-        if 'time' in mzn_result.statistics:
-            self.cpm_status.runtime = self.mzn_time_to_seconds(mzn_result.statistics.get("time"))
-        else:
-            self.cpm_status.runtime = self.mzn_time_to_seconds(mzn_result.statistics.get("solveTime", 0))
-            self.cpm_status.flattime = self.mzn_time_to_seconds(mzn_result.statistics.get("flatTime", 0))
-            self.cpm_status.init_time = self.mzn_time_to_seconds(mzn_result.statistics.get("initTime", 0))
+        # if 'time' in mzn_result.statistics:
+        #     self.cpm_status.runtime = self.mzn_time_to_seconds(mzn_result.statistics.get("time"))
+        # else:
+        self.cpm_status.runtime = self.mzn_time_to_seconds(mzn_result.statistics.get("solveTime", 0))
+        self.cpm_status.flattime = self.mzn_time_to_seconds(mzn_result.statistics.get("flatTime", 0))
+        self.cpm_status.init_time = self.mzn_time_to_seconds(mzn_result.statistics.get("initTime", 0))
 
 
         # translate exit status
