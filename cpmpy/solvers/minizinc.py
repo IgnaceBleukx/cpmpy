@@ -231,13 +231,10 @@ class CPM_minizinc(SolverInterface):
         if 'time' in mzn_result.statistics:
             self.cpm_status.runtime = self.mzn_time_to_seconds(mzn_result.statistics.get("time"))
         else:
-            runtime += self.mzn_time_to_seconds(mzn_result.statistics.get("flatTime", 0))
-            runtime += self.mzn_time_to_seconds(mzn_result.statistics.get("initTime", 0))
-            runtime += self.mzn_time_to_seconds(mzn_result.statistics.get("solveTime", 0))
-            if runtime != 0:
-                self.cpm_status.runtime = runtime
-            else:
-                raise NotImplementedError #Please report on github, minizinc probably changed their time names/types
+            self.cpm_status.runtime = self.mzn_time_to_seconds(mzn_result.statistics.get("solveTime", 0))
+            self.cpm_status.flattime = self.mzn_time_to_seconds(mzn_result.statistics.get("flatTime", 0))
+            self.cpm_status.init_time = self.mzn_time_to_seconds(mzn_result.statistics.get("initTime", 0))
+
 
         # translate exit status
         mzn_status = mzn_result.status
