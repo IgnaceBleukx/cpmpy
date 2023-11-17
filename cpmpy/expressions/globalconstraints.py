@@ -131,7 +131,7 @@ class GlobalConstraint(Expression):
         """
         return True
 
-    def decompose(self):
+    def decompose(self, context="positive"):
         """
             Returns a decomposition into smaller constraints.
 
@@ -165,7 +165,7 @@ class AllDifferent(GlobalConstraint):
     def __init__(self, *args):
         super().__init__("alldifferent", flatlist(args))
 
-    def decompose(self):
+    def decompose(self, context):
         """Returns the decomposition
         """
         return [var1 != var2 for var1, var2 in all_pairs(self.args)], []
@@ -181,7 +181,7 @@ class AllDifferentExcept0(GlobalConstraint):
     def __init__(self, *args):
         super().__init__("alldifferent_except0", flatlist(args))
 
-    def decompose(self):
+    def decompose(self, context):
         # equivalent to (var1 == 0) | (var2 == 0) | (var1 != var2)
         return [(var1 == var2).implies(var1 == 0) for var1, var2 in all_pairs(self.args)], []
 
@@ -201,7 +201,7 @@ class AllEqual(GlobalConstraint):
     def __init__(self, *args):
         super().__init__("allequal", flatlist(args))
 
-    def decompose(self):
+    def decompose(self, context):
         """Returns the decomposition
         """
         # arg0 == arg1, arg1 == arg2, arg2 == arg3... no need to post n^2 equalities
@@ -227,7 +227,7 @@ class Circuit(GlobalConstraint):
         if len(flatargs) < 2:
             raise CPMpyException('Circuit constraint must be given a minimum of 2 variables')
 
-    def decompose(self):
+    def decompose(self, context):
         """
             Decomposition for Circuit
 
@@ -280,7 +280,7 @@ class Inverse(GlobalConstraint):
         assert len(fwd) == len(rev)
         super().__init__("inverse", [fwd, rev])
 
-    def decompose(self):
+    def decompose(self, context):
         from .python_builtins import all
         fwd, rev = self.args
         rev = cpm_array(rev)
@@ -298,7 +298,7 @@ class Table(GlobalConstraint):
     def __init__(self, array, table):
         super().__init__("table", [array, table])
 
-    def decompose(self):
+    def decompose(self, context):
         from .python_builtins import any, all
         arr, tab = self.args
         return [any(all(ai == ri for ai, ri in zip(arr, row)) for row in tab)], []
@@ -325,7 +325,7 @@ class IfThenElse(GlobalConstraint):
         else:
             return argval(if_false)
 
-    def decompose(self):
+    def decompose(self, context):
         condition, if_true, if_false = self.args
         return [condition.implies(if_true), (~condition).implies(if_false)], []
 
@@ -345,7 +345,7 @@ class InDomain(GlobalConstraint):
             "The expressions in the InDomain constraint should not be boolean"
         super().__init__("InDomain", [expr, arr])
 
-    def decompose(self):
+    def decompose(self, context):
         """
         Returns two lists of constraints:
             1) constraints representing the comparison
@@ -393,11 +393,11 @@ class Xor(GlobalConstraint):
             flatargs = arg_list
         super().__init__("xor", flatargs)
 
-    def decompose(self):
+    def decompose(self, context):
         # there are multiple decompositions possible, Recursively using sum allows it to be efficient for all solvers.
         decomp = [sum(self.args[:2]) == 1]
         if len(self.args) > 2:
-            decomp = Xor([decomp,self.args[2:]]).decompose()[0]
+            decomp = Xor([decomp,self.args[2:]]).decompose(context=context)[0]
         return decomp, []
 
     def value(self):
@@ -438,7 +438,7 @@ class Cumulative(GlobalConstraint):
 
         super(Cumulative, self).__init__("cumulative", [start, duration, end, demand, capacity])
 
-    def decompose(self):
+    def decompose(self, context):
         """
             Time-resource decomposition from:
             Schutt, Andreas, et al. "Why cumulative decomposition is not as bad as it sounds."
@@ -503,7 +503,7 @@ class GlobalCardinalityCount(GlobalConstraint):
             raise TypeError("Only numerical arguments allowed for gcc global constraint: {}".format(flatargs))
         super().__init__("gcc", [vars,vals,occ])
 
-    def decompose(self):
+    def decompose(self, context):
         from .globalfunctions import Count
         vars, vals, occ = self.args
         return [Count(vars, i) == v for i, v in zip(vals, occ)], []
