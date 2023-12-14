@@ -26,6 +26,24 @@ class TestDirectORTools(unittest.TestCase):
 
         self.assertEqual(model.solveAll(), 6)
 
+    def test_direct_no_overlap(self):
+
+        interval1_args = intvar(3,10, shape=3)
+        interval2_args = intvar(2,10, shape=3)
+
+        interval1 = directvar("NewIntervalVar", interval1_args, name="ITV1", insert_name_at_index=3)
+        interval2 = directvar("NewIntervalVar", interval2_args, name="ITV2", insert_name_at_index=3)
+
+        solver = SolverLookup.get("ortools")
+
+        solver += DirectConstraint(name="AddNoOverlap",
+                                   arguments=([interval1, interval2]))
+
+        assert solver.solve()
+
+        print("Interval1: start:{}, size:{}, end:{}".format(*interval1_args.value()))
+        print("Interval2: start:{}, size:{}, end:{}".format(*interval2_args.value()))
+
 
 @pytest.mark.skipif(not CPM_exact.supported(), reason="Exact not installed")
 class TestDirectExact(unittest.TestCase):
