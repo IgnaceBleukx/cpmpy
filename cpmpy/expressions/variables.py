@@ -54,7 +54,7 @@ from functools import reduce
 
 import numpy as np
 from .core import Expression, Operator
-from .utils import is_num, is_int, flatlist, is_boolexpr, is_true_cst, is_false_cst, get_bounds
+from .utils import is_num, is_int, is_any_list, is_boolexpr, is_true_cst, is_false_cst, get_bounds
 
 
 def BoolVar(shape=1, name=None):

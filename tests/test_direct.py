@@ -27,9 +27,8 @@ class TestDirectORTools(unittest.TestCase):
         self.assertEqual(model.solveAll(), 6)
 
     def test_direct_no_overlap(self):
-
-        interval1_args = intvar(3,10, shape=3)
-        interval2_args = intvar(2,10, shape=3)
+        interval1_args = intvar(3, 10, shape=3)
+        interval2_args = intvar(2, 10, shape=3)
 
         interval1 = directvar("NewIntervalVar", interval1_args, name="ITV1", insert_name_at_index=3)
         interval2 = directvar("NewIntervalVar", interval2_args, name="ITV2", insert_name_at_index=3)
