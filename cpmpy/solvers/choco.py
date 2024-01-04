@@ -341,14 +341,12 @@ class CPM_choco(SolverInterface):
         cpm_cons = toplevel_list(cpm_expr)
         supported = {"min", "max", "abs", "count", "element", "alldifferent", "alldifferent_except0", "allequal",
                      "table", "InDomain", "cumulative", "circuit", "gcc", "inverse"}
-        supported_reified = {"alldifferent", "alldifferent_except0", "allequal",
-                     "table", "InDomain", "cumulative", "circuit", "gcc", "inverse"}
+        supported_reified = supported # choco supports reification of any constraint
         cpm_cons = decompose_in_tree(cpm_cons, supported, supported_reified)
         cpm_cons = flatten_constraint(cpm_cons)  # flat normal form
         cpm_cons = canonical_comparison(cpm_cons)
+        cpm_cons = reify_rewrite(cpm_cons, supported = supported_reified | {"sum", "wsum"})  # constraints that support reification
         cpm_cons = only_numexpr_equality(cpm_cons, supported=frozenset(["sum", "wsum", "sub"]))  # support >, <, !=
-        cpm_cons = reify_rewrite(cpm_cons, supported=supported_reified | {"sum", "wsum"})  # constraints that support reification
-        cpm_cons = only_bv_reifies(cpm_cons)
 
         return cpm_cons
 
@@ -397,26 +395,30 @@ class CPM_choco(SolverInterface):
                 return self.chc_model.and_(self.solver_vars(cpm_expr.args))
             elif cpm_expr.name == 'or':
                 return self.chc_model.or_(self.solver_vars(cpm_expr.args))
+
+            # elif cpm_expr.name == "->": # prepared for if pychoco releases if_then addition
+            #     cond, subexpr = cpm_expr.args
+            #     if isinstance(cond, _BoolVarImpl) and isinstance(subexpr, _BoolVarImpl):
+            #         return self.chc_model.or_(self.solver_vars([~cond, subexpr]))
+            #     else:
+            #         return self.chc_model.if_then(self._get_constraint(cond),
+            #                                       self._get_constraint(subexpr))
+
             elif cpm_expr.name == '->':
                 cond, subexpr = cpm_expr.args
-                assert isinstance(cond, _BoolVarImpl), f"Implication constraint {cpm_expr} must have BoolVar as lhs"
-                lhs = self.solver_var(cond) # should always be boolvar due to only_bv_reifies
-                # right hand side
-                if isinstance(subexpr, _BoolVarImpl):
-                    # bv -> bv
-                    # PyChoco does not have "implies" constraint
-                    return self.chc_model.or_([~lhs, self.solver_var(subexpr)])
+                if isinstance(cond, _BoolVarImpl) and isinstance(subexpr, _BoolVarImpl): # bv -> bv
+                    bv, chc_var = self.solver_vars([cond, subexpr])
+                elif isinstance(cond, _BoolVarImpl): # bv -> expr
+                    bv = self._get_constraint(subexpr).reify()
+                    chc_var = self.solver_var(cond)
+                elif isinstance(subexpr, _BoolVarImpl): # expr -> bv
+                    bv = self._get_constraint(cond).reify()
+                    chc_var = self.solver_var(subexpr)
                 else:
-                    # bv -> boolexpr
-                    # the `reify_rewrite()` transformation ensures that only reifiable rhs remain here
-                    if subexpr.name == 'not':
-                        assert isinstance(subexpr, _BoolVarImpl)
-                        # TODO need to check it in tests
-                        #bv = self._get_constraint(subexpr.args[0]).reify()
-                        return self.chc_model.or_([~lhs, ~subexpr])
-                    else:
-                        bv = self._get_constraint(cpm_expr.args[1]).reify()
-                        return self.chc_model.or_([~lhs, bv])
+                    raise ValueError(f"Unexpected reification {cpm_expr}")
+
+                return self.chc_model.or_([~bv, chc_var])
+
             else:
                 raise NotImplementedError("Not a known supported Choco Operator '{}' {}".format(
                     cpm_expr.name, cpm_expr))
@@ -430,11 +432,28 @@ class CPM_choco(SolverInterface):
             lhs, rhs = cpm_expr.args
 
             if is_boolexpr(lhs) and is_boolexpr(rhs): #boolean equality -- Reification
-                if isinstance(rhs, _NumVarImpl):
-                    return self.chc_model.all_equal(self.solver_vars([lhs, rhs]))
-                else:
+                # # prepared for if pychoco releases reify_with addition
+                # if isinstance(lhs, _BoolVarImpl) and isinstance(lhs, _BoolVarImpl):
+                #     return self.chc_model.all_equal(self.solver_vars([lhs, rhs]))
+                # elif isinstance(lhs, _BoolVarImpl):
+                #     return self._get_constraint(rhs).reify_with(self.solver_var(lhs))
+                # elif isinstance(rhs, _BoolVarImpl):
+                #     return self._get_constraint(lhs).reify_with(self.solver_var(rhs))
+                # else:
+                #     raise ValueError(f"Unexpected reification {cpm_expr}")
+
+                if isinstance(lhs, _BoolVarImpl) and isinstance(lhs, _BoolVarImpl):
+                    chc_var, bv = self.solver_vars([lhs, rhs])
+                elif isinstance(lhs, _BoolVarImpl):
                     bv = self._get_constraint(rhs).reify()
-                    return self.chc_model.all_equal([self.solver_var(lhs), bv])
+                    chc_var = self.solver_var(lhs)
+                elif isinstance(rhs, _BoolVarImpl):
+                    bv = self._get_constraint(lhs).reify()
+                    chc_var = self.solver_var(rhs)
+                else:
+                    raise ValueError(f"Unexpected reification {cpm_expr}")
+                return self.chc_model.all_equal([chc_var, bv])
+
             elif isinstance(lhs, _NumVarImpl) or (isinstance(lhs, Operator) and (
                     lhs.name == 'sum' or lhs.name == 'wsum' or lhs.name == "sub")):
                 # a BoundedLinearExpression LHS, special case, like in objective
