@@ -311,7 +311,7 @@ class CPM_choco(SolverInterface):
             if val < -2147483646 or val > 2147483646:
                 raise ChocoBoundsException(
                     "Choco does not accept integer literals with bounds outside of range (-2147483646..2147483646)")
-            return self.chc_model.intvar(val, val)  # convert to "variable"
+            return self.chc_model.intvar(int(val), int(val))  # convert to "variable"
         elif isinstance(val, _NumVarImpl):
             return self.solver_var(val)  # use variable
         elif isinstance(val, IntVar):
@@ -595,6 +595,8 @@ class CPM_choco(SolverInterface):
                 start, dur, end, demand, cap = cpm_expr.args
                 # Everything given to cumulative in Choco needs to be a variable.
                 start, end, cap = self.to_vars((start, end, cap))
+                # Duration can be var or int
+                dur = [self.to_var(d) if isinstance(d, _NumVarImpl) else int(d) for d in dur]
                 # Convert demands to variables
                 demand = self.to_vars(demand)  # Create variables for demand
                 # Create task variables. Choco can create them only one by one
